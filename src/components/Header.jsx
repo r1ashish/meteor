@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useShop } from "../context/ShopContext";
 
 const nav = [
@@ -10,14 +10,14 @@ const nav = [
 ];
 
 export default function Header({ theme = "light", onToggleTheme = () => {} }) {
-  const { totals } = useShop();
+  const { totals, query, setQuery } = useShop();
   const navigate = useNavigate();
   const [open, setOpen] = useState(null);
   const [mobileMenu, setMobileMenu] = useState(false);
   const firstBtn = useRef(null);
 
   useEffect(() => {
-    const onKey = (e) => e.key === "Escape" && setOpen(null);
+    const onKey = (e) => e.key === "Escape" && (setOpen(null), setMobileMenu(false));
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
@@ -25,44 +25,57 @@ export default function Header({ theme = "light", onToggleTheme = () => {} }) {
   return (
     <>
       <header className="glass rounded-2xl my-4 shadow-lg sticky top-3 z-50 border border-black/5 dark:border-white/10">
-        <div className="px-4 md:px-8 py-3 flex items-center gap-3">
+        <div className="px-3 md:px-8 py-3 flex items-center gap-2">
+          {/* Brand */}
           <button
-            className="flex items-center gap-2 group"
+            className="flex items-center gap-2 group shrink-0"
             onClick={() => navigate("/")}
             aria-label="Meteor Home"
           >
             <span className="w-9 h-9 rounded-xl grid place-items-center bg-gradient-to-br from-brand-purple to-brand-indigo text-white shadow-md group-hover:scale-105 transition">
               ✦
             </span>
-            <span className="text-2xl font-extrabold bg-gradient-to-r from-brand-indigo to-brand-purple bg-clip-text text-transparent">
+            <span className="text-xl md:text-2xl font-extrabold bg-gradient-to-r from-brand-indigo to-brand-purple bg-clip-text text-transparent">
               METEOR
             </span>
           </button>
 
-          <button
-            className="ml-auto md:hidden btn btn-secondary"
-            onClick={() => setMobileMenu((s) => !s)}
-            aria-label="Toggle menu"
-          >
-            ☰ Menu
-          </button>
-
+          {/* Desktop search */}
           <div className="hidden md:flex flex-1 items-center gap-2 mx-4">
-            <div className="flex items-center gap-2 glass rounded-full px-4 py-2 w-full">
+            <div className="flex items-center gap-2 glass rounded-full px-3 py-2 w-full">
               <button className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 transition text-sm">
                 All
               </button>
-              <input className="flex-1 bg-transparent outline-none text-sm" placeholder="Search for articles, pens, notebooks..." />
-              <button className="text-xl opacity-70 hover:opacity-100 transition" title="Voice search (placeholder)">🎤</button>
+              <input
+                className="flex-1 bg-transparent outline-none text-sm"
+                placeholder="Search products by name…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && setMobileMenu(false)}
+              />
+              <button className="text-xl opacity-70 hover:opacity-100 transition" title="Search">🔎</button>
             </div>
           </div>
 
+          {/* Mobile quick actions */}
+          <div className="ml-auto flex md:hidden items-center gap-2">
+            <button className="btn btn-secondary px-3" onClick={() => setMobileMenu((s) => !s)} aria-label="Toggle menu">☰</button>
+            <button className="btn btn-secondary px-3" onClick={onToggleTheme} aria-label="Toggle theme">
+              {theme === "dark" ? "🌙" : "🌞"}
+            </button>
+            <button className="btn btn-secondary px-3" onClick={() => navigate("/cart")} aria-label="Cart" title="Cart">
+              🛒
+              <span className="ml-1 text-xs font-bold">{totals.totalItems}</span>
+            </button>
+          </div>
+
+          {/* Desktop actions */}
           <div className="hidden md:flex items-center gap-2">
             <button className="btn btn-secondary" onClick={onToggleTheme} aria-label="Toggle theme" title="Toggle light/dark">
               {theme === "dark" ? "🌙" : "🌞"}
             </button>
             <button className="btn btn-secondary" title="Profile">👤</button>
-            <button className="btn btn-secondary relative" onClick={() => navigate("/cart")} title="Cart">
+            <button className="btn btn-secondary relative" onClick={() => navigate("/cart")} title="Cart" aria-label="Cart">
               🛒
               <span className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-xs font-bold grid place-items-center">
                 {totals.totalItems}
@@ -71,6 +84,7 @@ export default function Header({ theme = "light", onToggleTheme = () => {} }) {
           </div>
         </div>
 
+        {/* Desktop nav */}
         <div className="px-2 md:px-6 pb-3">
           <div className="hidden md:flex items-center gap-3">
             {nav.map((g, idx) => (
@@ -109,13 +123,33 @@ export default function Header({ theme = "light", onToggleTheme = () => {} }) {
             </button>
           </div>
 
+          {/* Mobile drawer */}
           {mobileMenu && (
-            <div className="md:hidden p-3 space-y-2">
-              <div className="glass rounded-xl p-2">
+            <div className="md:hidden p-3 space-y-3">
+              <div className="glass rounded-xl p-3">
                 <div className="flex gap-2 mb-2">
-                  <input className="input flex-1" placeholder="Search..." />
-                  <button className="btn btn-primary">Search</button>
+                  <input
+                    className="input flex-1"
+                    placeholder="Search products…"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && setMobileMenu(false)}
+                  />
+                  <button className="btn btn-primary" onClick={() => setMobileMenu(false)}>Search</button>
                 </div>
+
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <button className="btn btn-secondary" onClick={onToggleTheme}>
+                    {theme === "dark" ? "Dark" : "Light"}
+                  </button>
+                  <button className="btn btn-secondary" onClick={() => { setMobileMenu(false); navigate("/cart"); }}>
+                    Cart ({totals.totalItems})
+                  </button>
+                  <button className="btn btn-primary" onClick={() => { setMobileMenu(false); window.scrollTo({ top: 800, behavior: "smooth" }); }}>
+                    Shop
+                  </button>
+                </div>
+
                 {nav.map((g) => (
                   <details key={g.label} className="mb-2">
                     <summary className="cursor-pointer px-3 py-2 rounded-lg hover:bg-brand-indigo hover:text-white transition">
@@ -133,12 +167,6 @@ export default function Header({ theme = "light", onToggleTheme = () => {} }) {
                     </div>
                   </details>
                 ))}
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <button className="btn btn-secondary">Best Sellers</button>
-                  <button className="btn btn-secondary">Shop By Brand</button>
-                  <button className="btn btn-secondary">Popular</button>
-                  <button className="btn btn-primary">Back to School</button>
-                </div>
               </div>
             </div>
           )}

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Routes, Route, Link } from "react-router-dom";
+
+// IMPORTANT: exact, case-correct paths
 import ShopProvider from "./context/ShopContext";
 import Header from "./components/Header";
 import Home from "./pages/Home";
@@ -9,6 +11,7 @@ import { FAQ, Terms, MyOrders } from "./pages/Other";
 import WhatsAppChat from "./components/WhatsAppChat";
 
 export default function App() {
+  // Theme state persisted to localStorage
   const [chatOpen, setChatOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
 
@@ -49,6 +52,7 @@ export default function App() {
           </Routes>
         </main>
 
+        {/* Floating WhatsApp button */}
         <a
           href="#"
           onClick={(e) => {
@@ -57,6 +61,7 @@ export default function App() {
           }}
           className="fixed bottom-5 right-5 w-14 h-14 rounded-full grid place-items-center text-3xl text-white shadow-xl"
           style={{ backgroundColor: "#25d366" }}
+          aria-label="Open WhatsApp chat"
         >
           💬
         </a>

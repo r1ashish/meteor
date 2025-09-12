@@ -50,3 +50,10 @@ body {
 
 /* Full-width CTA alignment */
 .button-full { @apply w-full rounded-xl text-center font-semibold; height: 48px; line-height: 48px; }
+
+
+/* ...keep previous file content, but add this at the end... */
+@media (max-width: 480px) {
+  .btn { height: 46px; line-height: 46px; padding: 0 14px; }
+  .button-full { height: 50px; line-height: 50px; }
+}
