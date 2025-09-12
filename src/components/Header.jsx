@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useShop } from "../context/ShopContext";
+import { useAuth } from "../context/AuthContext";
+import { signOutUser } from "../firebase/config";
 
 const nav = [
   { label: "Stationery", items: ["Ball Pen", "Gel Pen", "Notebooks", "Highlighters", "Sticky Notes", "A4 Paper", "Markers"] },
@@ -11,16 +13,48 @@ const nav = [
 
 export default function Header({ theme = "light", onToggleTheme = () => {} }) {
   const { totals, query, setQuery } = useShop();
+  const { currentUser, isAdmin, userData } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(null);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [profileDropdown, setProfileDropdown] = useState(false);
   const firstBtn = useRef(null);
 
   useEffect(() => {
-    const onKey = (e) => e.key === "Escape" && (setOpen(null), setMobileMenu(false));
+    const onKey = (e) => e.key === "Escape" && (setOpen(null), setMobileMenu(false), setProfileDropdown(false));
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // Handle profile icon click
+  const handleProfileClick = () => {
+    if (!currentUser) {
+      // Not logged in - go to login page
+      navigate("/login");
+    } else {
+      // Logged in - toggle dropdown
+      setProfileDropdown(!profileDropdown);
+    }
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    const result = await signOutUser();
+    if (result.success) {
+      setProfileDropdown(false);
+      navigate("/");
+    }
+  };
+
+  // Go to dashboard
+  const goToDashboard = () => {
+    if (isAdmin) {
+      navigate("/admin/dashboard");
+    } else {
+      navigate("/dashboard");
+    }
+    setProfileDropdown(false);
+  };
 
   return (
     <>
@@ -74,7 +108,88 @@ export default function Header({ theme = "light", onToggleTheme = () => {} }) {
             <button className="btn btn-secondary" onClick={onToggleTheme} aria-label="Toggle theme" title="Toggle light/dark">
               {theme === "dark" ? "🌙" : "🌞"}
             </button>
-            <button className="btn btn-secondary" title="Profile">👤</button>
+            
+            {/* Updated Profile Button with Authentication */}
+            <div className="relative">
+              <button 
+                className="btn btn-secondary relative" 
+                onClick={handleProfileClick}
+                title={currentUser ? "Profile Menu" : "Login"}
+              >
+                {currentUser && userData?.photoURL ? (
+                  <img 
+                    src={userData.photoURL} 
+                    alt="Profile" 
+                    className="w-5 h-5 rounded-full"
+                  />
+                ) : (
+                  "👤"
+                )}
+                {/* Online indicator for logged in users */}
+                {currentUser && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                )}
+              </button>
+
+              {/* Profile Dropdown - Shows when logged in */}
+              {currentUser && profileDropdown && (
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                  {/* User Info */}
+                  <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-3">
+                      {userData?.photoURL && (
+                        <img 
+                          src={userData.photoURL} 
+                          alt="Profile" 
+                          className="w-8 h-8 rounded-full"
+                        />
+                      )}
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {userData?.displayName || 'User'}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{currentUser.email}</p>
+                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                          isAdmin 
+                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                        }`}>
+                          {isAdmin ? 'Admin' : 'Customer'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Menu Items */}
+                  <button
+                    onClick={goToDashboard}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center gap-2"
+                  >
+                    <span>{isAdmin ? '⚙️' : '📊'}</span>
+                    {isAdmin ? 'Admin Dashboard' : 'My Dashboard'}
+                  </button>
+                  
+                  <button
+                    onClick={() => { setProfileDropdown(false); navigate("/my-orders"); }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center gap-2"
+                  >
+                    <span>📦</span>
+                    My Orders
+                  </button>
+                  
+                  <div className="border-t border-gray-200 dark:border-gray-700 mt-1 pt-1">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition flex items-center gap-2"
+                    >
+                      <span>🚪</span>
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button className="btn btn-secondary relative" onClick={() => navigate("/cart")} title="Cart" aria-label="Cart">
               🛒
               <span className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-xs font-bold grid place-items-center">
@@ -145,8 +260,19 @@ export default function Header({ theme = "light", onToggleTheme = () => {} }) {
                   <button className="btn btn-secondary" onClick={() => { setMobileMenu(false); navigate("/cart"); }}>
                     Cart ({totals.totalItems})
                   </button>
-                  <button className="btn btn-primary" onClick={() => { setMobileMenu(false); window.scrollTo({ top: 800, behavior: "smooth" }); }}>
-                    Shop
+                  {/* Mobile Login/Profile Button */}
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => { 
+                      setMobileMenu(false); 
+                      if (currentUser) {
+                        goToDashboard();
+                      } else {
+                        navigate("/login");
+                      }
+                    }}
+                  >
+                    {currentUser ? (isAdmin ? 'Admin' : 'Profile') : 'Login'}
                   </button>
                 </div>
 
